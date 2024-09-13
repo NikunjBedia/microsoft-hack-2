@@ -1,76 +1,59 @@
 import React, { useState } from "react";
-import { PlusIcon } from "@radix-ui/react-icons";
 import { Button } from "./components/ui/button";
 
-interface FileUploadWithDurationProps {
-  onUpload: (data: { file: File | null; duration: string | null }) => void;
+interface FileUploadButtonProps {
+  onUpload: (files: File | null) => void;
 }
 
-const durations = ["Lorem", "Ipsum", "Dolor"];
-
-const FileUploadWithDuration: React.FC<FileUploadWithDurationProps> = ({
-  onUpload,
-}) => {
+const FileUploadButton: React.FC<FileUploadButtonProps> = ({ onUpload }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedDuration, setSelectedDuration] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files ? event.target.files[0] : null;
-    setSelectedFile(file);
-  };
+    setError(null);
+    if (file) {
+      if (file.type !== "application/pdf") {
+        setError("Please upload only PDF files.");
+        setSelectedFile(null);
+        return;
+      }
 
-  const handleDurationClick = (duration: string) => {
-    setSelectedDuration(duration);
-  };
+      const maxFileSize = 2 * 1024 * 1024;
+      if (file.size > maxFileSize) {
+        setError("File size should not exceed 2MB.");
+        setSelectedFile(null);
+        return;
+      }
 
-  const handleUploadClick = () => {
-    if (selectedFile && selectedDuration) {
-      onUpload({ file: selectedFile, duration: selectedDuration });
-    } else {
-      alert("Please select a file and a duration.");
+      setSelectedFile(file);
+      onUpload(file);
     }
   };
 
   return (
-    <div>
+    <div className="flex flex-col justify-center items-center p-8">
       <input
         type="file"
         id="file-upload"
+        accept="application/pdf"
         onChange={handleFileChange}
         style={{ display: "none" }}
       />
 
-      <Button onClick={() => document.getElementById("file-upload")?.click()}>
-        <PlusIcon /> Add Document
-      </Button>
-
-      {selectedFile && <p>Selected file: {selectedFile.name}</p>}
-
-      <div className="flex flex-row justify-center items-center">
-        <span>Duration:</span>
-        {durations.map((duration) => (
-          <Button
-            key={duration}
-            className={`mx-2 p-2 border ${
-              selectedDuration === duration
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200"
-            }`}
-            onClick={() => handleDurationClick(duration)}
-          >
-            {duration}
-          </Button>
-        ))}
-      </div>
-
       <Button
-        onClick={handleUploadClick}
-        className="mt-4 p-2 bg-green-500 text-white"
+        onClick={() => document.getElementById("file-upload")?.click()}
+        className="rounded-full"
       >
-        Upload
+        Upload File
       </Button>
+
+      {selectedFile && (
+        <p className="p-2">Selected file: {selectedFile.name}</p>
+      )}
+      {error && <p className="text-red-500 p-2">{error}</p>}
     </div>
   );
 };
 
-export default FileUploadWithDuration;
+export default FileUploadButton;
