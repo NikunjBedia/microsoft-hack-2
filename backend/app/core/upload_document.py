@@ -20,7 +20,7 @@ class UploadDocument:
         # Create or update vector store
         vector_store = VectorStore()
         vector_store = vector_store.create_vector_store()
-        #vector_store.add_documents(processed_docs)
+        vector_store.add_documents(processed_docs[:600])
         llm = LLM()
         document_qa = DocumentQA(vector_store,llm)
         topics = document_qa.get_topics()
