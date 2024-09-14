@@ -1,9 +1,9 @@
 from typing import List, Optional
 from langchain.output_parsers.openai_functions import JsonOutputFunctionsParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_openai import ChatOpenAI
+from langchain_google_genai.chat_models import ChatGoogleGenerativeAI
 
-from langgraph.graph import END, StateGraph, START
+
 from langchain_core.messages import HumanMessage
 
 
@@ -12,7 +12,7 @@ def agent_node(state, agent, name):
     return {"messages": [HumanMessage(content=result["messages"][-1].content, name=name)]}
 
 
-def create_team_supervisor(llm: ChatOpenAI, system_prompt, members) -> str:
+def create_team_supervisor(llm: ChatGoogleGenerativeAI, system_prompt, members) -> str:
     """An LLM-based router."""
     options = ["FINISH"] + members
     function_def = {
