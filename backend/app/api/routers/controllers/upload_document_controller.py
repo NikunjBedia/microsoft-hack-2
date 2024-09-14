@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
-from app.core.upload_document import UploadDocument
+from app.core.common.upload_document import UploadDocument
 from app.utils.pdf_parser.pdf_parser import PdfParser
 from app.utils.vector_store.vector_store import VectorStore
 from app.utils.llm.document_qa import DocumentQA
