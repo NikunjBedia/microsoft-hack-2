@@ -31,6 +31,8 @@ class InterruptionGraph:
         )
         self.graph = self._create_graph()
         self.compiled_graph = self.graph.compile()
+        self.awaiting_feedback = False
+        self.conversation_started = False
 
     def _prelude(self, state):
         """Prepare the initial state with the current script."""
@@ -155,36 +157,29 @@ class InterruptionGraph:
         """
         return {"human_feedback_required": True, "next": "supervisor"}
 
-    def enter_chain(self, message: str):
+    def awaiting_feedback(self):
+        return self.awaiting_feedback
+
+    def start_conversation(self, message: str):
         """
-        Initialize the chain with a new message.
-        
-        Args:
-            message (str): The initial message to start the chain.
-        
-        Returns:
-            dict: The initial state of the chain.
+        Start a new conversation with the initial message.
         """
-        return {
-            "messages": [HumanMessage(content=message)],
-            "team_members": ", ".join(self.graph.nodes),
-            "human_feedback_required": False,
-        }
+        self.conversation_started = True
+        self.awaiting_feedback = False
+        return self.run_interruption_chain(message)
 
     def run_interruption_chain(self, message: str):
         """
         Run the interruption chain with a given message.
-        
-        Args:
-            message (str): The interruption message.
-        
-        Returns:
-            dict: The result of running the interruption chain.
         """
+        if not self.conversation_started:
+            raise ValueError("Conversation not started. Use start_conversation first.")
+        
         state = self.enter_chain(message)
         
         for output in self.compiled_graph(state):
             if output.get("human_feedback_required", False):
+                self.awaiting_feedback = True
                 return {"status": "human_feedback_required", "state": output}
             if output["next"] == END:
                 return {"status": "finished", "state": output}
@@ -194,23 +189,30 @@ class InterruptionGraph:
     def continue_with_feedback(self, state: dict, feedback: str):
         """
         Continue the conversation with human feedback.
-        
-        Args:
-            state (dict): The current state of the conversation.
-            feedback (str): The human feedback to incorporate.
-        
-        Returns:
-            dict: The result of continuing the conversation with feedback.
         """
+        if not self.awaiting_feedback:
+            raise ValueError("No feedback was requested.")
+        
+        self.awaiting_feedback = False
         state["messages"].append(HumanMessage(content=feedback))
         state["human_feedback_required"] = False
         
         for output in self.compiled_graph(state):
             if output.get("human_feedback_required", False):
+                self.awaiting_feedback = True
                 return {"status": "human_feedback_required", "state": output}
             if output["next"] == END:
                 return {"status": "finished", "state": output}
         
         return {"status": "error", "state": output}
+
+    def handle_interruption(self, message: str):
+        """
+        Handle an interruption message.
+        """
+        if not self.conversation_started:
+            raise ValueError("Conversation not started. Use start_conversation first.")
+        
+        return self.run_interruption_chain(message)
 
 # interruption_graph = InterruptionGraph()
