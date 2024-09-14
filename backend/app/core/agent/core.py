@@ -113,42 +113,16 @@ class SuperGraph:
         self.is_interruption = False
         return self.current_state
 
-    def handle_interruption(self, interruption_message):
-        self.is_interruption = True
-        interruption_result = self.interruption_graph.run_interruption_chain(interruption_message)
-        
-        if interruption_result["status"] == "human_feedback_required":
-            self.interruption_state = interruption_result["state"]
-            return {"status": "human_feedback_required", "message": "Human feedback is required."}
-        
-        return self.run(interruption_message)
-
-    def continue_with_human_feedback(self, feedback):
-        if self.interruption_state is None:
-            return {"status": "error", "message": "No interruption state found."}
-        
-        continuation_result = self.interruption_graph.continue_with_feedback(self.interruption_state, feedback)
-        self.interruption_state = None
-        
-        if continuation_result["status"] == "finished":
-            return self.run(feedback)  # This will continue with ScriptGenerationTeam
-        elif continuation_result["status"] == "human_feedback_required":
-            self.interruption_state = continuation_result["state"]
-            return {"status": "human_feedback_required", "message": "Additional human feedback is required."}
-        
-        return continuation_result
-
-    def awaiting_feedback(self):
-        return self.awaiting_feedback
-
     def start_conversation(self, message: str):
         self.awaiting_feedback = False
         return self.run(message, is_initial=True)
 
     def handle_interruption(self, message: str):
+        self.is_interruption = True
         result = self.interruption_graph.handle_interruption(message)
         if result.get("status") == "human_feedback_required":
             self.awaiting_feedback = True
+            self.interruption_state = result.get("state")
         return result
 
     def continue_with_human_feedback(self, feedback: str):
@@ -156,7 +130,16 @@ class SuperGraph:
             raise ValueError("No feedback was requested.")
         
         self.awaiting_feedback = False
-        result = self.interruption_graph.continue_with_feedback(feedback)
+        result = self.interruption_graph.continue_with_feedback(self.interruption_state, feedback)
+        self.interruption_state = None
+        
         if result.get("status") == "human_feedback_required":
             self.awaiting_feedback = True
+            self.interruption_state = result.get("state")
+        elif result.get("status") == "finished":
+            return self.run(feedback)  # Continue with ScriptGenerationTeam
+        
         return result
+
+    def awaiting_feedback(self):
+        return self.awaiting_feedback
