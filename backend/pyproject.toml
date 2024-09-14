@@ -8,6 +8,7 @@ version = "v1"
 dependencies = [
   "langchain",
   "langchain-community",
+  "langgraph",
   "pymilvus",
   "openai",
   "aiohttp==3.9.4",
