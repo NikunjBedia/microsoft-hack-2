@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 fetch_topics_router = APIRouter()
 
-@router.get("")
+@fetch_topics_router.get("")
 async def fetch_topics():
     """
     Endpoint to fetch a list of topics.

@@ -3,7 +3,7 @@ from typing import List
 
 upload_documents_router = APIRouter()
 
-@router.post("")
+@upload_documents_router.post("")
 async def upload_documents(files: List[UploadFile] = File(...)):
     """
     Endpoint to upload multiple documents.

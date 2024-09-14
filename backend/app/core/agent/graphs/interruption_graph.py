@@ -2,115 +2,215 @@ import operator
 import functools
 from typing import Annotated, List, TypedDict
 from langchain_core.messages import BaseMessage, HumanMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 from langgraph.graph import END, StateGraph, START
 from langgraph.prebuilt import create_react_agent
 from app.core.agent.helpers.utils import create_team_supervisor, agent_node
-from app.core.agent.flows.qa_flow import section_search,create_greeting, clarify_question
-from app.core.db.zillis_db import get_current_script_marker
+from app.core.agent.flows.qa_flow import section_search, create_greeting, clarify_question
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 
-# Document writing team graph state
 class InterruptionFlowState(TypedDict):
-    # This tracks the team's conversation internally
     messages: Annotated[List[BaseMessage], operator.add]
-    # This provides each worker with context on the others' skill sets
     team_members: str
-    # This is how the supervisor tells langgraph who to work next
     next: str
-    # This tracks the shared directory state
     current_script: str
+    human_feedback_required: bool
 
+class InterruptionGraph:
+    def __init__(self):
+        self.llm = ChatGroq(
+            model="mixtral-8x7b-32768",
+            temperature=0,
+            max_tokens=None,
+            timeout=None,
+            max_retries=2,
+            api_key=os.getenv("GROQ_API_KEY")
+        )
+        self.graph = self._create_graph()
+        self.compiled_graph = self.graph.compile()
 
-# This will be run before each worker agent begins work
-# It makes it so they are more aware of the current state
-# of the working directory.
-def prelude(state):
+    def _prelude(self, state):
+        """Prepare the initial state with the current script."""
+        current_script = "Hey there! Today we're diving into Chapter 5: Conservation of Resources. This chapter is all about understanding how we use and manage the resources available to us, and why it's so important to do it wisely.Resources are everything we need to survive and thrive. They're the things we use to build our homes, grow our food, power our industries, and even enjoy our leisure time.  Think about it: the air we breathe, the water we drink, the land we live on, the minerals we extract, and the energy we use are all resources. "
+        if current_script is None:
+            return {**state, "current_script": "No current script marker found."}
+        return {**state, "current_script": f"This is the current script that is being spoken: {current_script}"}
 
-    current_script = get_current_script_marker()
-    
-    if current_script is None:
-        return {**state, "current_script": "No current script marker found."}
-    
-    return {
-        **state,
-        "current_script": f"Current script marker: {current_script}",
-    }
+    def _section_search_with_state(self, query: str, state: InterruptionFlowState):
+        """
+        Perform a section search based on the query and current state.
+        
+        Args:
+            query (str): The user's query.
+            state (InterruptionFlowState): The current state of the conversation.
+        
+        Returns:
+            str: The result of the section search.
+        """
+        conversation_history = [msg.content for msg in state["messages"]]
+        current_script = state["current_script"]
+        return section_search(query, conversation_history, current_script)
 
+    def _create_greeting_with_state(self, query: str, state: InterruptionFlowState):
+        """
+        Create a greeting based on the query and current state.
+        
+        Args:
+            query (str): The user's query.
+            state (InterruptionFlowState): The current state of the conversation.
+        
+        Returns:
+            str: The generated greeting.
+        """
+        conversation_history = [msg.content for msg in state["messages"]]
+        current_script = state["current_script"]
+        return create_greeting(query, conversation_history, current_script)
 
-llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-exp-0827")
+    def _clarify_question_with_state(self, query: str, state: InterruptionFlowState):
+        """
+        Clarify a question based on the query and current state.
+        
+        Args:
+            query (str): The user's query.
+            state (InterruptionFlowState): The current state of the conversation.
+        
+        Returns:
+            str: The clarified question.
+        """
+        conversation_history = [msg.content for msg in state["messages"]]
+        current_script = state["current_script"]
+        return clarify_question(query, conversation_history, current_script)
 
-new_qna_agent = create_react_agent(llm, tools=[section_search])
-# Injects current directory working state before each call
-context_aware_qna_agent = prelude | new_qna_agent
-new_qna_node = functools.partial(
-    agent_node, agent=context_aware_qna_agent, name="NewQnAFlow"
-)
+    def _create_graph(self):
+        new_qna_agent = create_react_agent(self.llm, tools=[self._section_search_with_state])
+        context_aware_qna_agent = self._prelude | new_qna_agent
+        new_qna_node = functools.partial(agent_node, agent=context_aware_qna_agent, name="NewQnAFlow")
 
-greeting_agent = create_react_agent(llm, tools=[create_greeting])
-context_aware_greeting_agent = prelude | greeting_agent
-greeting_node = functools.partial(
-    agent_node, agent=context_aware_greeting_agent, name="GreetingFlow"
-)
+        greeting_agent = create_react_agent(self.llm, tools=[self._create_greeting_with_state])
+        context_aware_greeting_agent = self._prelude | greeting_agent
+        greeting_node = functools.partial(agent_node, agent=context_aware_greeting_agent, name="GreetingFlow")
 
-clarifying_agent = create_react_agent(llm, tools=[clarify_question])
-context_aware_clarifying_agent = prelude | clarifying_agent
-clarifying_node = functools.partial(
-    agent_node, agent=context_aware_clarifying_agent, name="ClarifyingFlow"
-)
+        clarifying_agent = create_react_agent(self.llm, tools=[self._clarify_question_with_state])
+        context_aware_clarifying_agent = self._prelude | clarifying_agent
+        clarifying_node = functools.partial(agent_node, agent=context_aware_clarifying_agent, name="ClarifyingFlow")
 
-doc_writing_supervisor = create_team_supervisor(
-    llm,
-    "You are a supervisor tasked with managing a conversation between the"
-    " following workers:  {team_members}. Given the following user request,"
-    " respond with the worker to act next. Each worker will perform a"
-    " task and respond with their results and status. When finished,"
-    " respond with FINISH.",
-    ["NewQnAFlow", "GreetingFlow", "ClarifyingFlow"],
-)
+        interruption_graph_supervisor = create_team_supervisor(
+            self.llm,
+            "You are a supervisor tasked with managing a conversation between the"
+            " following workers: {team_members}. Given the following user request,"
+            " respond with the worker to act next. Each worker will perform a"
+            " task and respond with their results and status. When finished,"
+            " respond with FINISH.",
+            ["NewQnAFlow", "GreetingFlow", "ClarifyingFlow"],
+        )
 
-# Create the graph here:
-# Note that we have unrolled the loop for the sake of this doc
-interruption_graph = StateGraph(InterruptionFlowState)
-interruption_graph.add_node("NewQnAFlow", new_qna_node)
-interruption_graph.add_node("GreetingFlow", greeting_node)
-interruption_graph.add_node("ClarifyingFlow", clarifying_node)
-interruption_graph.add_node("supervisor", doc_writing_supervisor)
+        graph = StateGraph(InterruptionFlowState)
+        graph.add_node("NewQnAFlow", new_qna_node)
+        graph.add_node("GreetingFlow", greeting_node)
+        graph.add_node("ClarifyingFlow", clarifying_node)
+        graph.add_node("supervisor", interruption_graph_supervisor)
+        graph.add_node("HumanFeedback", self._human_feedback_node)
 
-# Add the edges that always occur
-interruption_graph.add_edge("NewQnAFlow", "supervisor")
-interruption_graph.add_edge("GreetingFlow", "supervisor")
-interruption_graph.add_edge("ClarifyingFlow", "supervisor")
+        graph.add_edge("NewQnAFlow", "HumanFeedback")
+        graph.add_edge("GreetingFlow", "HumanFeedback")
+        graph.add_edge("ClarifyingFlow", "HumanFeedback")
 
-# Add the edges where routing applies
-interruption_graph.add_conditional_edges(
-    "supervisor",
-    lambda x: x["next"],
-    {
-        "NewQnAFlow": "NewQnAFlow",
-        "GreetingFlow": "GreetingFlow",
-        "ClarifyingFlow": "ClarifyingFlow",
-        "FINISH": END,
-    },
-)
+        graph.add_conditional_edges(
+            "HumanFeedback",
+            lambda x: x["next"],
+            {
+                "supervisor": "supervisor",
+                "FINISH": END,
+            },
+        )
 
-interruption_graph.add_edge(START, "supervisor")
-chain = interruption_graph.compile()
+        graph.add_conditional_edges(
+            "supervisor",
+            lambda x: x["next"],
+            {
+                "NewQnAFlow": "NewQnAFlow",
+                "GreetingFlow": "GreetingFlow",
+                "ClarifyingFlow": "ClarifyingFlow",
+                "FINISH": END,
+            },
+        )
 
+        graph.add_edge(START, "supervisor")
 
-# The following functions interoperate between the top level graph state
-# and the state of the interruption sub-graph
-# this makes it so that the states of each graph don't get intermixed
-def enter_chain(message: str, members: List[str]):
-    results = {
-        "messages": [HumanMessage(content=message)],
-        "team_members": ", ".join(members),
-    }
-    return results
+        return graph
 
+    @staticmethod
+    def _human_feedback_node(state: InterruptionFlowState):
+        """
+        Handle the human feedback node in the graph.
+        
+        Args:
+            state (InterruptionFlowState): The current state of the conversation.
+        
+        Returns:
+            dict: The updated state indicating human feedback is required.
+        """
+        return {"human_feedback_required": True, "next": "supervisor"}
 
-# We reuse the enter/exit functions to wrap the graph
-interruption_chain = (
-    functools.partial(enter_chain, members=interruption_graph.nodes)
-    | interruption_graph.compile()
-)
+    def enter_chain(self, message: str):
+        """
+        Initialize the chain with a new message.
+        
+        Args:
+            message (str): The initial message to start the chain.
+        
+        Returns:
+            dict: The initial state of the chain.
+        """
+        return {
+            "messages": [HumanMessage(content=message)],
+            "team_members": ", ".join(self.graph.nodes),
+            "human_feedback_required": False,
+        }
+
+    def run_interruption_chain(self, message: str):
+        """
+        Run the interruption chain with a given message.
+        
+        Args:
+            message (str): The interruption message.
+        
+        Returns:
+            dict: The result of running the interruption chain.
+        """
+        state = self.enter_chain(message)
+        
+        for output in self.compiled_graph(state):
+            if output.get("human_feedback_required", False):
+                return {"status": "human_feedback_required", "state": output}
+            if output["next"] == END:
+                return {"status": "finished", "state": output}
+        
+        return {"status": "error", "state": output}
+
+    def continue_with_feedback(self, state: dict, feedback: str):
+        """
+        Continue the conversation with human feedback.
+        
+        Args:
+            state (dict): The current state of the conversation.
+            feedback (str): The human feedback to incorporate.
+        
+        Returns:
+            dict: The result of continuing the conversation with feedback.
+        """
+        state["messages"].append(HumanMessage(content=feedback))
+        state["human_feedback_required"] = False
+        
+        for output in self.compiled_graph(state):
+            if output.get("human_feedback_required", False):
+                return {"status": "human_feedback_required", "state": output}
+            if output["next"] == END:
+                return {"status": "finished", "state": output}
+        
+        return {"status": "error", "state": output}
+
+# interruption_graph = InterruptionGraph()
