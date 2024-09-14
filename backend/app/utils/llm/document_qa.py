@@ -1,3 +1,4 @@
+import json
 from app.utils.vector_store.vector_store import VectorStore
 from app.utils.llm.gemini_llm import LLM
 
@@ -12,7 +13,12 @@ class DocumentQA:
         combined_content = "\n\n".join([doc.page_content for doc in relevant_docs])
 
         # Prepare the prompt for the LLM
-        prompt = f"""Based on the following content related to the section heading "{topic}", provide a detailed script describing the key points and information surrounding this section.
+        prompt = f"""Based on the following content related to the section heading "{topic}", provide a detailed script describing the key points and information surrounding this section as a personal teacher explaining the content to a student.
+                The script should be structured as a JSON array. Each element in the array should be an object with the following fields:
+        - "paragraph": A coherent chunk of the script.
+        - "pause": A description of a meaningful pause or transition.
+
+        Ensure the JSON is properly formatted.
         
 Content:
 {combined_content}
@@ -22,6 +28,8 @@ Please generate a script that:
 2. Explains the main concepts and ideas related to the section mentioned in the text
 4. Summarizes the key takeaways
 5.Don't hallucinate and Content should be the source of truth. Don't make stuff up.
+6. Generates a structured script in JSON format for the given topic.
+
 
 Script:"""
 
@@ -30,7 +38,21 @@ Script:"""
 
         # Extract the content from the AIMessage object
         script = response.content if hasattr(response, 'content') else str(response)
-
+        script=script.strip().replace('```json', '').replace('```', '')
+        try:
+            # Parse the JSON response
+            script_json = json.loads(script)
+            
+            # Validate that it's a list of dictionaries
+            if isinstance(script_json, list) and all(isinstance(item, dict) for item in script_json):
+                return script_json
+            else:
+                raise ValueError("The response is not a valid JSON array of objects.")
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Failed to parse JSON: {str(e)}") from e
+        except Exception as e:
+            raise ValueError(f"Unexpected error: {str(e)}") from e
+        
         return script
     def get_topics(self):
         # Retrieve all documents from the vector store

@@ -3,7 +3,7 @@ import os
 import uvicorn
 from app.api.routers.chat import chat_router
 from app.api.routers.nodeurl import nodeurl_router
-from app.api.routers.controllers.fetch_topics_controller import fetch_topics_router
+from app.api.routers.controllers.fetch_topics_content import fetch_topics_router
 from app.api.routers.controllers.upload_document_controller import upload_documents_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
