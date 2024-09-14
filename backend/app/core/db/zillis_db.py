@@ -31,3 +31,11 @@ def search_vectors(query: str, top_k: int):
     query_vector = embedding_model.embed(query)
     results = vector_store.search_vectors(query_vector, top_k)
     return results
+
+def get_current_script_marker():
+    """
+    Get the current script marker from the LanceDB database.
+    """
+    results = vector_store.search_vectors("current_script_marker", 1)
+    return results[0] if results else None
+    
