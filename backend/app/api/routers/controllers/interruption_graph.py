@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional
 from app.core.agent.core import SuperGraph
 
 interruption_graph_router = APIRouter()
@@ -21,7 +20,10 @@ async def handle_graph_request(request: GraphRequest):
             result = super_graph.handle_interruption(request.user_message)
 
         if result.get("status") == "human_feedback_required":
-            return {"response": result["message"], "requires_feedback": True}
-        return {"response": result["messages"][-1].content, "requires_feedback": False}
+            return {"response": result.get("message", "Human feedback required."), "requires_feedback": True}
+        elif result.get("status") == "finished":
+            return {"response": result.get("state", {}).get("messages", [])[-1].content, "requires_feedback": False}
+        else:
+            return {"response": "An unexpected error occurred.", "requires_feedback": False}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")

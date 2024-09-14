@@ -38,6 +38,7 @@ class SuperGraph:
         self.compiled_graph = self.compile_graph()
         self.script_generation_state = None
         self.is_interruption = False
+        self.awaiting_feedback = False
 
     # Top-level graph state
     class State(TypedDict):
@@ -136,3 +137,26 @@ class SuperGraph:
             return {"status": "human_feedback_required", "message": "Additional human feedback is required."}
         
         return continuation_result
+
+    def awaiting_feedback(self):
+        return self.awaiting_feedback
+
+    def start_conversation(self, message: str):
+        self.awaiting_feedback = False
+        return self.run(message, is_initial=True)
+
+    def handle_interruption(self, message: str):
+        result = self.interruption_graph.handle_interruption(message)
+        if result.get("status") == "human_feedback_required":
+            self.awaiting_feedback = True
+        return result
+
+    def continue_with_human_feedback(self, feedback: str):
+        if not self.awaiting_feedback:
+            raise ValueError("No feedback was requested.")
+        
+        self.awaiting_feedback = False
+        result = self.interruption_graph.continue_with_feedback(feedback)
+        if result.get("status") == "human_feedback_required":
+            self.awaiting_feedback = True
+        return result
