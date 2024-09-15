@@ -14,7 +14,12 @@ async def fetch_topic_content(topic: str = Query(..., description="The topic to 
     Endpoint to fetch content for a given topic.
     """
     try:
-        content = FetchTopicContent().fetch_topic_content(topic)
+        fetcher = FetchTopicContent()
+        # Option 1: Explicit initialization
+        await fetcher.initialize()
+        content = await fetcher.fetch_topic_content(topic)
+
+
         return {"topic": topic, "content": content}
     except Exception as e:
         return {"error": f"An error occurred: {str(e)}"}

@@ -19,7 +19,9 @@ async def upload_pdf(file: UploadFile = File(...)):
         # Read the file as a stream
         pdf_stream = await file.read()  
 
-        topics = UploadDocument().generate_topics(pdf_stream)
+        uploader = UploadDocument()
+        await uploader.initialize()
+        topics = await uploader.generate_topics(pdf_stream)
         return topics
 
 

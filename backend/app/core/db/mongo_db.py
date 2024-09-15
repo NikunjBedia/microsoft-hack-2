@@ -1,5 +1,5 @@
 import os
-from pymongo import MongoClient
+from motor.motor_asyncio import AsyncIOMotorClient
 import uuid
 from typing import Dict, List, Any
 
@@ -9,7 +9,7 @@ class MongoDB:
         self.db = None
         self.collection = None
 
-    def connect(self):
+    async def connect(self):
         """Establish connection to MongoDB."""
         mongodb_uri = os.getenv("MONGODB_URI")
         database_name = os.getenv("MONGODB_DATABASE")
@@ -19,7 +19,7 @@ class MongoDB:
             raise ValueError("MongoDB connection details are not properly configured in environment variables.")
 
         try:
-            self.client = MongoClient(mongodb_uri)
+            self.client = AsyncIOMotorClient(mongodb_uri)
             self.db = self.client[database_name]
             self.collection = self.db[collection_name]
             print("Successfully connected to MongoDB.")
@@ -27,13 +27,13 @@ class MongoDB:
             print(f"Error connecting to MongoDB: {str(e)}")
             raise
 
-    def close_connection(self):
+    async def close_connection(self):
         """Close the MongoDB connection."""
         if self.client:
             self.client.close()
             print("MongoDB connection closed.")
 
-    def upload_json_with_session(self, json_data: List[Dict[str, Any]]) -> str:
+    async def upload_json_with_session(self, json_data: List[Dict[str, Any]]) -> str:
         """Upload JSON data to MongoDB with a generated session ID."""
         if self.collection is None:  # Check explicitly for None
             raise ValueError("MongoDB connection not established. Call connect() first.")
@@ -46,14 +46,14 @@ class MongoDB:
                 item['session_id'] = session_id
 
             # Insert the data into MongoDB
-            result = self.collection.insert_many(json_data)
+            result = await self.collection.insert_many(json_data)
             print(f"Successfully uploaded {len(result.inserted_ids)} documents with session ID: {session_id}")
             return session_id
         except Exception as e:
             print(f"Error uploading JSON data: {str(e)}")
             raise
 
-    def fetch_json_by_session(self, session_id: str) -> List[Dict[str, Any]]:
+    async def fetch_json_by_session(self, session_id: str) -> List[Dict[str, Any]]:
         """Fetch JSON data from MongoDB based on the session ID."""
         if self.collection is None:  # Check explicitly for None
             raise ValueError("MongoDB connection not established. Call connect() first.")
@@ -64,7 +64,7 @@ class MongoDB:
             
             # Convert cursor to list and remove MongoDB's _id field
             result = []
-            for doc in cursor:
+            async for doc in cursor:
                 doc.pop('_id', None)  # Remove the _id field
                 result.append(doc)
 
