@@ -1,6 +1,14 @@
 import json
 from typing import List, Dict, Any, TypedDict, Generator
 from langgraph.graph import END, StateGraph, START
+import os
+from astrapy import DataAPIClient
+from astrapy.constants import VectorMetric
+
+# Initialize the client and get a "Database" object
+client = DataAPIClient(os.environ["ASTRA_DB_TOKEN"])
+database = client.get_database(os.environ["ASTRA_DB_API_ENDPOINT"])
+print(f"* Database: {database.info().name}\n")
 
 # Define the list of JSON objects
 json = {
@@ -108,9 +116,13 @@ json = {
     }
 }
 
-class ScriptState(TypedDict, total=False):
+
+
+
+
+class ScriptState(TypedDict):
+    current_id: int
     topic: str
-    script_index: int
     current_paragraph: str
     end: bool
 
@@ -120,64 +132,23 @@ class ScriptGraph:
         self.compiled_graph = self.compile_graph()
 
     def custom_node(self, state: ScriptState) -> Dict[str, Any]:
-        print("Entering custom_node")
-        print(f"Initial state: {state}")
-
-        new_state = state.copy()  # Create a new state object
-
-        if 'topic' not in new_state or not new_state['topic']:
-            new_state['topic'] = self.json['topic']
-            print(f"Updated topic: {new_state['topic']}")
-
-        if 'script_index' not in new_state:
-            new_state['script_index'] = -1
-            print("Initialized script_index to -1")
-
+        print(f"Input state: {state}")  # Debug print
+        new_state = state.copy()
+        new_state['current_id'] += 1
         script = self.json['content']['script']
         
-        # Increment the index before fetching the paragraph
-        new_state['script_index'] += 1
-        print(f"Incremented script_index to {new_state['script_index']}")
-
-        if new_state['script_index'] < len(script):
-            new_state['current_paragraph'] = script[new_state['script_index']]['paragraph']
+        if new_state['current_id'] < len(script):
+            new_state['current_paragraph'] = script[new_state['current_id']]['paragraph']
             new_state['end'] = False
-            print(f"Updated paragraph: {new_state['current_paragraph'][:50]}...")
         else:
             new_state['current_paragraph'] = ""
             new_state['end'] = True
-            print("Reached end of script")
 
-        result = {k: v for k, v in new_state.items() if k in ['topic', 'script_index', 'current_paragraph', 'end']}
-        print(f"Returning: {result}")
-        print("Exiting custom_node")
-        return result
-
-        # # Update the input state
-        # if 'topic' not in state or not state['topic']:
-        #     state['topic'] = self.json['topic']
+        # Ensure 'topic' is always present
+        new_state['topic'] = new_state.get('topic', self.json['topic'])
         
-        # if 'script_index' not in state:
-        #     state['script_index'] = -1
-        
-        # state['script_index'] += 1
-
-        # script = self.json['content']['script']
-        
-        # if state['script_index'] < len(script):
-        #     state['current_paragraph'] = script[state['script_index']]['paragraph']
-        #     state['end'] = False
-        # else:
-        #     state['current_paragraph'] = ""
-        #     state['end'] = True
-
-        # # Create and return a new state with updates
-        # return {
-        #     'topic': state['topic'],
-        #     'script_index': state['script_index'],
-        #     'current_paragraph': state['current_paragraph'],
-        #     'end': state['end']
-        # }
+        print(f"Output state: {new_state}")  # Debug print
+        return new_state
 
     def compile_graph(self):
         workflow = StateGraph(ScriptState)
@@ -186,7 +157,7 @@ class ScriptGraph:
         workflow.set_entry_point("custom")
 
         def router(state: ScriptState):
-            return END if state.get('end', False) else "custom"
+            return END if state['end'] else "custom"
 
         workflow.add_conditional_edges(
             "custom",
@@ -199,28 +170,62 @@ class ScriptGraph:
 
         return workflow.compile()
 
-    def run(self, resume_state=None):
-        initial_state: ScriptState = resume_state or {
-            "topic": "",
-            "script_index": -1,
+    def run(self, resume_state: ScriptState = None) -> Generator[ScriptState, None, None]:
+        initial_state = resume_state or {
+            "current_id": -1,
+            "topic": self.json['topic'],
             "current_paragraph": "",
             "end": False
         }
+        print(f"Initial state: {initial_state}")  # Debug print
 
         for output in self.compiled_graph.stream(initial_state, {"recursion_limit": 100}):
             if output == END:
                 break
-            yield output
+            if isinstance(output, dict) and 'custom' in output:
+                yield output['custom']  # Yield the state directly, without the 'custom' wrapper
+            else:
+                yield output
+
+# Global variable to store the current state of the script
+current_script_state = None
+
+def script_chain(input_str: str) -> Dict[str, Any]:
+    global current_script_state
+    script_graph = ScriptGraph(json)
+    
+    if current_script_state is None or current_script_state.get('end', True):
+        state_generator = script_graph.run()
+    else:
+        state_generator = script_graph.run(current_script_state)
+    
+    try:
+        state = next(state_generator)
+        print(f"State in script_chain: {state}")  # Debug print
+        if isinstance(state, dict) and 'custom' in state:
+            state = state['custom']  # Extract the actual state from the 'custom' key
+        current_script_state = state
+        return {
+            "messages": [{
+                "content": f"Topic: {state.get('topic', 'No topic')}\nParagraph: {state.get('current_paragraph', 'No paragraph')}",
+                "type": "assistant"
+            }]
+        }
+    except StopIteration:
+        current_script_state = None
+        return {
+            "messages": [{
+                "content": "Script has ended.",
+                "type": "assistant"
+            }]
+        }
 
 # Usage example
 if __name__ == "__main__":
-    script_graph = ScriptGraph(json)
-    
-    for state in script_graph.run():
-        print(f"Topic: {state.get('topic', 'No topic')}")
-        print(f"Index: {state.get('script_index', -1)}")
-        print(f"Paragraph: {state.get('current_paragraph', 'No paragraph')}")
+    for _ in range(5):  # Get the first 5 paragraphs
+        try:
+            result = script_chain("")
+            print(result['messages'][0]['content'])
+        except Exception as e:
+            print(f"An error occurred: {e}")
         print("---")
-    print("Script graph finished.")
-
-
