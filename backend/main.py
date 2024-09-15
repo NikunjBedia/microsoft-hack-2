@@ -6,6 +6,7 @@ from app.api.routers.nodeurl import nodeurl_router
 from app.api.routers.controllers.fetch_topics_controller import fetch_topics_router
 from app.api.routers.controllers.upload_document_controller import upload_documents_router
 from app.api.routers.controllers.interruption_graph import interruption_graph_router
+from app.api.routers.controllers.stt_tts_controller import stt_tts_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -34,7 +35,7 @@ app.include_router(chat_router, prefix="/api/chat")
 app.include_router(nodeurl_router, prefix= "/api/nodeurl")
 app.include_router(fetch_topics_router, prefix="/api/topics")
 app.include_router(upload_documents_router, prefix= "/api/document")
-app.include_router(streaming_socket, prefix= "/ws")
+app.include_router(stt_tts_router, prefix= "/ws/stt_tts")
 
 app.include_router(interruption_graph_router, prefix="/api/interruption")
 
