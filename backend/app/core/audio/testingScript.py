@@ -6,22 +6,19 @@ import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import wave
 import os
+import io
 from elevenlabs.client import ElevenLabs
 from faster_whisper import WhisperModel
 import torch.cuda
 from dotenv import load_dotenv
+import ffmpeg
 
 load_dotenv()
 
 app = FastAPI()
 
 # Initialize clients and models
-genai.configure(api_key=os.getenv("Gemini_API_KEY"))
-elevenlabs_client = ElevenLabs(
-  api_key=os.getenv("XI_API_KEY"),  # Defaults to ELEVEN_API_KEY
-  
-)
-elevenlabs_generate=elevenlabs_client.generate
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 # Initialize Whisper model
 whisper_model = WhisperModel("tiny.en", device='cuda' if torch.cuda.is_available() else 'cpu')
@@ -58,16 +55,24 @@ async def websocket_endpoint(websocket: WebSocket):
             # Receive audio data from the client
             audio_data = await websocket.receive_bytes()
             
-            # Save audio data to a temporary file
-            with wave.open("temp_audio.wav", "wb") as wf:
-                wf.setnchannels(1)
-                wf.setsampwidth(2)  # 16-bit audio
-                wf.setframerate(16000)
-                wf.writeframes(audio_data)
+            # Debug: Check received data size
+            print(f"Received audio data size: {len(audio_data)} bytes")
+            
+            # Save received WebM audio to a temporary file
+            with open("temp_audio.webm", "wb") as f:
+                f.write(audio_data)
+            
+            # Debug: Check saved file size
+            print(f"Saved WebM file size: {os.path.getsize('temp_audio.webm')} bytes")
+            
+
             
             # Transcribe audio using Whisper
-            segments, _ = whisper_model.transcribe("output.wav", language="en")
+            segments, _ = whisper_model.transcribe("temp_audio.webm", language="en")
             user_text = " ".join(segment.text for segment in segments)
+            
+            # Debug: Print transcription result
+            print(f"Transcription result: {user_text}")
             
             # Check if transcription is empty
             if not user_text.strip():
@@ -83,28 +88,31 @@ async def websocket_endpoint(websocket: WebSocket):
             response_text = response.text
             await websocket.send_text(response_text)
             
-            # response_text = ""
-            # async for chunk in response:
-            #     if chunk.text:
-            #         response_text += chunk.text
-            #         await websocket.send_text(chunk.text)
-            
             # Generate audio response using ElevenLabs
-            audio_stream = elevenlabs_generate(
+            elevenlabs_client = ElevenLabs(
+                api_key="sk_17b47fb3097fe54ea4d074ffbeee7f5800627e3f0c3a8ed8",  # Defaults to ELEVEN_API_KEY
+            )
+            elevenlabs_generate = elevenlabs_client.generate
+            audio_response = elevenlabs_generate(
                 text=response_text,
                 voice="Nicole",
                 model="eleven_multilingual_v1",
-                stream=True
+                stream=False  # Change this to False to get the entire audio at once
             )
             
-            for chunk in audio_stream:
-                await websocket.send_bytes(chunk)
-        
+            # Send the entire audio response to the client
+            await websocket.send_bytes(audio_response)
+
         except Exception as e:
             error_message = f"An error occurred: {str(e)}"
             print(error_message)  # Log the error
             await websocket.send_text(error_message)
-            
+        
+        finally:
+            # Clean up temporary file
+            if os.path.exists("temp_audio.webm"):
+                os.remove("temp_audio.webm")
+
 # Serve a simple HTML page for testing
 @app.get("/")
 async def get():
@@ -124,11 +132,26 @@ async def get():
                 let ws = new WebSocket("ws://localhost:8000/ws");
                 let mediaRecorder;
                 let audioChunks = [];
+                let audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                let audioBuffer = [];
+                let isPlaying = false;
+
+                const audioConstraints = {
+                    audio: {
+                        channelCount: 1,
+                        sampleRate: 48000,  // Changed to 48kHz
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                    }
+                };
 
                 document.getElementById("startRecord").onclick = function() {
-                    navigator.mediaDevices.getUserMedia({ audio: true })
+                    navigator.mediaDevices.getUserMedia(audioConstraints)
                         .then(stream => {
-                            mediaRecorder = new MediaRecorder(stream);
+                            mediaRecorder = new MediaRecorder(stream, {
+                                mimeType: 'audio/webm;codecs=opus',
+                                audioBitsPerSecond: 48000  // Changed to match 48kHz
+                            });
                             mediaRecorder.start();
 
                             mediaRecorder.addEventListener("dataavailable", event => {
@@ -140,7 +163,7 @@ async def get():
                 document.getElementById("stopRecord").onclick = function() {
                     mediaRecorder.stop();
                     mediaRecorder.addEventListener("stop", () => {
-                        let audioBlob = new Blob(audioChunks);
+                        let audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
                         audioChunks = [];
                         let reader = new FileReader();
                         reader.readAsArrayBuffer(audioBlob);
@@ -151,23 +174,30 @@ async def get():
                     });
                 };
 
-                ws.onmessage = function(event) {
+                ws.onmessage = async function(event) {
                     if (event.data instanceof Blob) {
                         // Handle audio data
-                        let audio = new Audio(URL.createObjectURL(event.data));
-                        audio.play();
+                        const arrayBuffer = await event.data.arrayBuffer();
+                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                        
+                        const source = audioContext.createBufferSource();
+                        source.buffer = audioBuffer;
+                        source.connect(audioContext.destination);
+                        source.start();
                     } else {
                         // Handle text data
                         let message = event.data;
                         if (message.startsWith("An error occurred:")) {
                             console.error(message);
-                            // Optionally, display the error to the user
                             document.getElementById("output").innerHTML += `<span style="color: red;">${message}</span><br>`;
                         } else {
                             document.getElementById("output").innerHTML += message + "<br>";
                         }
                     }
                 };
+
+                // Remove any unused functions or variables
             </script>
         </body>
     </html>
