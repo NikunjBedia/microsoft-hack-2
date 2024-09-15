@@ -6,7 +6,7 @@ from langchain_groq import ChatGroq
 @tool
 def section_search(query: str, conversation_history: list, current_script: str):
     """
-    Search for a section in the script based on the query using KNNSimilaritySearch with Zilliz DB and VoyageAI embeddings.
+    Used to Search for a section in the script based on the query using KNNSimilaritySearch
     """
     # Embed the query using VoyageAI embeddings
     # query_embedding = embedding_model.embed_query(query)
@@ -22,7 +22,7 @@ def section_search(query: str, conversation_history: list, current_script: str):
 @tool
 def create_greeting(query: str, conversation_history: list, current_script: str):
     """
-    Create a greeting based on the query, conversation history, and current script using an LLM.
+    Useful to Create a greeting based on the query, conversation history, and current script
     """
     # Initialize the LLM
     llm = ChatGroq(
@@ -57,7 +57,7 @@ def create_greeting(query: str, conversation_history: list, current_script: str)
 @tool
 def clarify_question(query: str, conversation_history: list, current_script: str):
     """
-    Clarify the question based on the query, conversation history, and current script using an LLM.
+    Used to Clarify the question based on the query, conversation history, and current script using an LLM.
     """
     # Initialize the LLM
     llm = ChatGroq(
