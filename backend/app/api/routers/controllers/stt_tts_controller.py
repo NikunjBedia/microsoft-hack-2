@@ -48,7 +48,7 @@ class Flow:
             max_tokens=None,
             timeout=None,
             max_retries=2,
-            api_key=os.getenv("GROQ_API_KEY")
+            api_key="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"
         )
 
     async def script_generation(self):
