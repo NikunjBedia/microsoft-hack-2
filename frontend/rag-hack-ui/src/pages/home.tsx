@@ -31,7 +31,7 @@ const Home = () => {
     }
   };
   return (
-    <div className="font-medium relative h-full w-full flex items-center justify-center items-center">
+    <div className="font-medium relative h-full w-full flex items-center justify-center items-center" style={{ pointerEvents:page === HOME_PAGE?"all":"none"}}>
       <FloatingSVG />
       <div
         id="home-body"
