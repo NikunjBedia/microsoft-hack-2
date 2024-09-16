@@ -2,6 +2,8 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import MenuItem from "./menuItem";
 import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { selectTopic } from "../../actions/topicActions";
 
 const variants = {
   open: {
@@ -14,30 +16,24 @@ const variants = {
 };
 
 const Navigation = () => {
-  const [selectedButton, setSelectedButton] = useState<number | null>(null);
-  const handleClick = (index: number) => {
-    setSelectedButton(index);
+  const selectedTopic = useSelector((state: any) => state.topic);
+  const dispatch = useDispatch();
+  const topics = useSelector((state:any) => state.topic.topics);
+  const handleClick = (topic: String) => {
+    dispatch(selectTopic(topic));
   };
   return (
-    <motion.ul variants={variants}>
-      {itemIds.map((i, index) => (
+    <motion.ul variants={variants} className="scrollable-menu">
+      {topics?.map((i: String, index: number) => (
         <MenuItem
           i={i}
           key={index}
-          onClick={() => handleClick(index)} // Pass the click handler
-          isSelected={selectedButton === index} // Pass the selected state
+          onClick={() => handleClick(i)} // Pass the click handler
+          isSelected={selectedTopic === i} // Pass the selected state
         />
       ))}
     </motion.ul>
   );
 };
-
-const itemIds = [
-  "Chapter 1: Resources",
-  "Chapter 2: Land Resources",
-  "Chapter 3: Soil Resources",
-  "Chapter 4: Soil Erosion and Soil Conservation",
-  "Chapter 5: Resource Planning in India",
-];
 
 export default Navigation;

@@ -2,8 +2,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from langchain_astradb import AstraDBVectorStore
 from astrapy.info import CollectionVectorServiceOptions
 
-
-from app.utils.vector_store.embeddings import Embeddings
 import os
 class VectorStore:
     def __init__(self):
