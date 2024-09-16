@@ -9,6 +9,6 @@ class Embeddings:
     def get_embedding_model(self):
 
         embed_model = VoyageAIEmbeddings(
-            model=self.model_name, voyage_api_key="xxxx"
+            model=self.model_name, voyage_api_key=self.voyage_api_key
         )
         return embed_model
