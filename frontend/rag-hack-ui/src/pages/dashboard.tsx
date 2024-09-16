@@ -64,7 +64,8 @@ const Dashboard = () => {
           variants={sidebar}
           initial={{ background: "F3F3F4", backgroundSize: "0%" }}
           animate={{
-            backgroundImage: "linear-gradient(to right, #DAF7FF, transparent)",
+            backgroundColor: "#FFFFFF",
+            //backgroundImage: "linear-gradient(to right, #DAF7FF, transparent)",
             backgroundSize: isOpen ? "100%" : "0%", // Transition the gradient size
             backgroundPosition: "left", // Ensure the gradient starts from the left
             backgroundRepeat: "no-repeat", // Avoid repeating the gradient
