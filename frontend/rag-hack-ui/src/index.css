@@ -137,7 +137,7 @@ nav {
   top: 0;
   left: 0;
   bottom: 0;
-  width: 500px;
+  width: 345px;
   background: #f3f3f400;
   /* z-index: 10; */
 }
@@ -167,7 +167,6 @@ nav ul {
   padding: 0 25px;
   position: absolute;
   top: 80px;
-  width: 500px;
 }
 
 nav li {
@@ -234,13 +233,4 @@ nav li {
 .show-backdrop{
   pointer-events: all;
   animation: dashboardEnter 0.5s forwards;
-}
-
-.card{
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
-  width: 300px;
-  height: 75px;
-  border-radius: 12px;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
-  background-color: white;
 }

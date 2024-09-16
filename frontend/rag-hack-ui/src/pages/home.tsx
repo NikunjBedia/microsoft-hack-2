@@ -8,15 +8,18 @@ import { HOME_PAGE } from "../lib/actionTypes";
 const Home = () => {
   const page = useSelector((state: any) => state.page.currentPage);
   const dispatch = useDispatch();
+  const [isLoading, setIsLoading] = useState<boolean | null>(false);
   const handleFileUpload = async (files: File | null) => {
     if (files) {
       console.log("File uploaded");
       const formData = new FormData();
       formData.append("file", files);
 
+      setIsLoading(true);
       setTimeout(() => {
+        // setIsLoading(false);
         dispatch(actions.pageActions.dashboard());
-      }, 1000);
+      }, 5000);
 
       // try {
       //   const response = await fetch('/upload-endpoint', {
@@ -42,7 +45,7 @@ const Home = () => {
         <div className={`text-7xl font-medium text-center`}>
           Lorem Ipsum Dolor <br /> Sit Amet
         </div>
-        <FileUploadButton onUpload={handleFileUpload} />
+        <FileUploadButton onUpload={handleFileUpload} isLoading={isLoading} />
       </div>
     </div>
   );

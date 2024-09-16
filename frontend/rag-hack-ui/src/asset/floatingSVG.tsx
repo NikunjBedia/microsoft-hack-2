@@ -13,6 +13,7 @@ const FloatingSVG = () => {
       width="800"
       height="800"
       className="absolute z-0"
+      style={{ overflow: "visible" }} // Prevents clipping of the glow
       initial={{ scale: 1 }}
       animate={{
         scale: page !== HOME_PAGE ? 0 : [1, 1.15, 1], // Scale to 0 if shrinking, else float
@@ -24,8 +25,8 @@ const FloatingSVG = () => {
       }}
     >
       <defs>
-        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="10" result="coloredBlur" />
+        <filter id="glow" x="-200%" y="-200%" width="400%" height="400%">
+          <feGaussianBlur stdDeviation="30" result="coloredBlur" />
           <feMerge>
             <feMergeNode in="coloredBlur" />
             <feMergeNode in="SourceGraphic" />

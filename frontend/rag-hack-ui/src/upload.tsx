@@ -1,11 +1,16 @@
 import React, { useState } from "react";
 import { Button } from "./components/ui/button";
+import { motion } from "framer-motion";
 
 interface FileUploadButtonProps {
   onUpload: (files: File | null) => void;
+  isLoading: boolean | null;
 }
 
-const FileUploadButton: React.FC<FileUploadButtonProps> = ({ onUpload }) => {
+const FileUploadButton: React.FC<FileUploadButtonProps> = ({
+  onUpload,
+  isLoading,
+}) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,15 +46,30 @@ const FileUploadButton: React.FC<FileUploadButtonProps> = ({ onUpload }) => {
         style={{ display: "none" }}
       />
 
-      <Button
+      <motion.button
         onClick={() => document.getElementById("file-upload")?.click()}
-        className="rounded-full"
+        className="bg-[#0F172A] text-white rounded-full font-medium flex items-center justify-center"
+        initial={false}
+        animate={{
+          width: isLoading ? "50px" : "125px",
+          height: isLoading ? "50px" : "45px",
+          transition: { duration: 0.3, ease: "easeInOut" },
+        }}
       >
-        Upload File
-      </Button>
+        {isLoading ? (
+          <motion.div
+            className="border-t-2 border-white border-solid rounded-full"
+            style={{ width: "20px", height: "20px" }}
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 1 }}
+          />
+        ) : (
+          "Upload File"
+        )}
+      </motion.button>
 
       {selectedFile && (
-        <p className="p-2">Selected file: {selectedFile.name}</p>
+        <p className="p-4">Selected file: {selectedFile.name}</p>
       )}
       {error && <p className="text-red-500 p-2">{error}</p>}
     </div>
