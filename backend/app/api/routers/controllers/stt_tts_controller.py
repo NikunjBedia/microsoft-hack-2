@@ -155,7 +155,7 @@ async def stt_tts_handler(websocket: WebSocket):
             )
             
             # Send the audio response to the client
-            await websocket.send_bytes(audio_response) #TODO: Change this to stream the audio response to decrease latency
+            await websocket.send_bytes(audio_response)
 
 
         except Exception as e:
@@ -202,8 +202,8 @@ async def script_generation_handler(websocket: WebSocket):
         print("WebSocket disconnected before script generation started")
     except Exception as e:
         print(f"An unexpected error occurred: {str(e)}")
-    finally:
-        print("Script generation WebSocket connection closed")
+    # finally:
+    #     print("Script generation WebSocket connection closed")
 
 
 # Sample HTML for client
@@ -225,7 +225,7 @@ html_content = """
             let scriptWs;
             let mediaRecorder;
             let audioChunks = [];
-            let audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            let audioContext;
             let audioBuffer = [];
             let isPlaying = false;
             let currentAudioSource = null;
@@ -239,19 +239,29 @@ html_content = """
                 }
             };
 
+            function initAudioContext() {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+            }
+
             function initializeScriptWs() {
-                scriptWs = new WebSocket("ws://localhost:8000/ws/script_generation");
-                scriptWs.onmessage = handleMessage;
-                scriptWs.onopen = function() {
-                    console.log("Script WebSocket connected");
-                    scriptWs.send("start_script_generation");
-                };
-                scriptWs.onclose = function(event) {
-                    console.log("Script WebSocket closed.");
-                };
-                scriptWs.onerror = function(error) {
-                    console.error("Script WebSocket error:", error);
-                };
+                return new Promise((resolve, reject) => {
+                    scriptWs = new WebSocket("ws://localhost:8000/ws/script_generation");
+                    scriptWs.onmessage = handleMessage;
+                    scriptWs.onopen = function() {
+                        console.log("Script WebSocket connected");
+                        resolve(scriptWs);
+                    };
+                    scriptWs.onclose = function(event) {
+                        console.log("Script WebSocket closed.");
+                    };
+                    scriptWs.onerror = function(error) {
+                        console.error("Script WebSocket error:", error);
+                        reject(error);
+                    };
+                });
             }
 
             function initializeWs() {
@@ -278,9 +288,10 @@ html_content = """
             }
 
             // Initially start with script generation
-            initializeScriptWs();
+            initializeScriptWs().then(ws => ws.send("start_script_generation"));
 
             document.getElementById("startRecord").onclick = function() {
+                initAudioContext();
                 if (scriptWs && scriptWs.readyState === WebSocket.OPEN) {
                     scriptWs.close();
                 }
@@ -326,10 +337,11 @@ html_content = """
             }
 
             document.getElementById("startScriptGeneration").onclick = function() {
+                initAudioContext();
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     ws.close();
                 }
-                initializeScriptWs();
+                initializeScriptWs().then(ws => ws.send("start_script_generation"));
             };
 
             function handleMessage(event) {
@@ -352,7 +364,9 @@ html_content = """
                 if (audioBuffer.length > 0) {
                     isPlaying = true;
                     const arrayBuffer = audioBuffer.shift();
-                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    if (!audioContext) {
+                        initAudioContext();
+                    }
                     const audioBufferData = await audioContext.decodeAudioData(arrayBuffer);
                     
                     currentAudioSource = audioContext.createBufferSource();
@@ -371,7 +385,7 @@ html_content = """
                     if (ws.readyState === WebSocket.OPEN) {
                         ws.close();
                     }
-                    initializeScriptWs();  // Switch back to script generation
+                    initializeScriptWs().then(ws => ws.send("start_script_generation"));  // Switch back to script generation
                 }
             }
 
