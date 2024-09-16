@@ -1,13 +1,14 @@
-import * as React from "react";
+import React, {useEffect} from "react";
 import { useRef } from "react";
 import { motion, useCycle } from "framer-motion";
-import { useDimensions } from "../lib/useDimensions";
+import { useDimensions } from "../hooks/useDimensions";
 import MenuToggle from "../components/ui/menuToggle";
 import Navigation from "../components/ui/Navigation";
 import { DASHBOARD_PAGE } from "../lib/actionTypes";
 import { useSelector } from "react-redux";
 import { Pause, Mic, ChevronLeft, ChevronRight } from "lucide-react";
 import VoiceVisualizer from "../components/ui/voiceVisualizer";
+import useAxios from "../hooks/useAxios";
 
 const sidebar = {
   open: (height = 525) => ({
@@ -35,10 +36,12 @@ const sidebar = {
 
 const Dashboard = () => {
   const page = useSelector((state: any) => state.page.currentPage);
+  const topic = useSelector((state: any) => state.topic);
+  const { data, loading, error, refetch } = useAxios<any>(`/topics?topic=${topic}`, 'GET');
   const [isOpen, toggleOpen] = useCycle(false, true);
   const containerRef = useRef(null);
   const { height } = useDimensions(containerRef);
-  React.useEffect(() => {
+  useEffect(() => {
     if (page === DASHBOARD_PAGE) {
       setTimeout(() => {
         toggleOpen();
@@ -46,9 +49,20 @@ const Dashboard = () => {
     }
   }, [page]);
 
+  useEffect(()=>{
+    if(topic){
+      refetch();
+    }
+  },[topic]);
+
+  useEffect(()=>{
+    if(data)
+    console.log(data);
+  },[data]);
+
   return (
     <div
-      className={`page bg-gray-100 ${
+      className={`page bg-gray-100 gradient-container ${
         page === DASHBOARD_PAGE && "dashboard-show"
       }`}
     >

@@ -12,6 +12,8 @@ const Home = () => {
   const dispatch = useDispatch();
   useEffect(()=>{
     if(loading === false && data !== null){
+      dispatch(actions.topicActions.updateTopics(data));
+      dispatch(actions.topicActions.selectTopic(data[0]));
       dispatch(actions.pageActions.dashboard());
     }
   },[loading])

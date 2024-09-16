@@ -238,3 +238,31 @@ nav li {
   pointer-events: all;
   animation: dashboardEnter 0.5s forwards;
 }
+
+.scrollable-menu {
+  max-height: 80vh; /* Set max height to limit the size */
+  overflow-y: auto; /* Enable vertical scrolling */
+  padding: 0;
+  margin: 0;
+  width: 345px;
+  list-style-type: none; /* Optional: to remove list style */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  font-family: Arial, sans-serif;
+}
+/* .gradient-container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #b3e0ff 0%, #d6e9ff 50%, #fff1f6 80%, #ffd6ec 100%);
+} */
