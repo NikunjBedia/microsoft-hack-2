@@ -253,9 +253,7 @@ html_content = """
 
             function initAudioContext() {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
+                audioContext.resume();
             }
 
             function initializeScriptWs() {
@@ -300,7 +298,6 @@ html_content = """
             }
 
             // Initially start with script generation
-            initializeScriptWs().then(ws => ws.send("start_script_generation"));
 
             document.getElementById("startRecord").onclick = function() {
                 initAudioContext();
