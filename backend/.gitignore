@@ -1,10 +1,11 @@
-.venv
 .venv/*
+.venv/*
+.venv
 __pycache__
 .env
 .vscode
 .DS_Store
-venv/
+venv/*
 env/
 ENV/
 __pycache__/
