@@ -8,7 +8,7 @@ __pycache__
 venv/*
 env/
 ENV/
-__pycache__/
+__pycache__/*
 *.py[cod]
 *.pyo
 *.pyd
