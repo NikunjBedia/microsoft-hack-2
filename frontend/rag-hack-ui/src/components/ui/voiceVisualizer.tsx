@@ -24,6 +24,7 @@ const VoiceVisualizer = () => {
       borderRadius: '50%',
       backgroundColor: 'black',
       position: 'relative',
+      boxShadow:"grey 0px 0px 14px 5px, #80808045 0px 0px 17px 3px"
     }}
     onClick={()=>{setClicked(!clicked)}}
     >

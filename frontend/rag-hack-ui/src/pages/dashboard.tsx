@@ -62,7 +62,7 @@ const Dashboard = () => {
 
   return (
     <div
-      className={`page bg-gray-100 gradient-container ${
+      className={`page gradient-container ${
         page === DASHBOARD_PAGE && "dashboard-show"
       }`}
     >
@@ -101,7 +101,7 @@ const Dashboard = () => {
         <Navigation />
         <MenuToggle toggle={() => toggleOpen()} />
       </motion.nav>
-      <div className="flex flex-col h-screen bg-gray-100 p-4">
+      <div className="flex flex-col h-screen w-11/12 p-4">
         <div className="audio-container h-1/3 flex justify-center items-center">
           <VoiceVisualizer />
         </div>

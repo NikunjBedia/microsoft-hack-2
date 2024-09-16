@@ -45,7 +45,7 @@ const FloatingSVG = () => {
         }}
       >
         {[
-          { r: 200, fill: "#FAFEFF" },
+          // { r: 200, fill: "#FAFEFF" },
           { r: 160, fill: "#EAFAFF" },
           { r: 120, fill: "#DAF7FF" },
           { r: 80, fill: "#CAF6FF" },

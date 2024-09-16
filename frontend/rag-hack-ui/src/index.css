@@ -258,11 +258,11 @@ body, html {
   width: 100%;
   font-family: Arial, sans-serif;
 }
-/* .gradient-container {
+.gradient-container {
   width: 100%;
   height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
   background: linear-gradient(135deg, #b3e0ff 0%, #d6e9ff 50%, #fff1f6 80%, #ffd6ec 100%);
-} */
+}
