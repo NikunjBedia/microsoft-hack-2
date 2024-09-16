@@ -5,6 +5,9 @@ import io
 from elevenlabs.client import ElevenLabs
 from pydantic import BaseModel
 from faster_whisper import WhisperModel
+#from app.core.agent.core import SuperGraph
+
+#super_graph = SuperGraph()
 # from app.core.agent.core import SuperGraph
 from typing import List, Dict
 from langchain_groq import ChatGroq
@@ -135,6 +138,15 @@ async def stt_tts_handler(websocket: WebSocket):
             await websocket.send_text(f"Transcription: {user_text}")
             
 
+            # #Get response from graph
+            # if request.is_initial:
+            #     result = super_graph.start_conversation(user_text)
+            # elif super_graph.awaiting_feedback():
+            #     result = super_graph.continue_with_human_feedback(user_text)
+            # else:
+            #     result = super_graph.handle_interruption(user_text)
+            
+            response_text =" result "#TODO:Check result object dictionary to get the response text
             # Use the global Flow instance
             result = await global_flow.question_answer(query=user_text)
             
