@@ -12,6 +12,8 @@ const Home = () => {
   const dispatch = useDispatch();
   useEffect(()=>{
     if(loading === false && data !== null){
+      dispatch(actions.topicActions.updateTopics(data));
+      dispatch(actions.topicActions.selectTopic(data[0]));
       dispatch(actions.pageActions.dashboard());
     }
   },[loading])
@@ -23,7 +25,7 @@ const Home = () => {
     }
   };
   return (
-    <div className="font-medium relative h-full w-full flex items-center justify-center items-center" style={{ pointerEvents:page === HOME_PAGE?"all":"none"}}>
+    <div className="font-medium gradient-container relative h-full w-full flex items-center justify-center  items-center" style={{ pointerEvents:page === HOME_PAGE?"all":"none"}}>
       <FloatingSVG />
       <div
         id="home-body"
@@ -32,7 +34,7 @@ const Home = () => {
         }`}
       >
         <div className={`text-7xl font-medium text-center`}>
-          Lorem Ipsum Dolor <br /> Sit Amet
+          Karee <br /> Sit Amet
         </div>
         <FileUploadButton onUpload={handleFileUpload} isLoading={loading} />
       </div>
