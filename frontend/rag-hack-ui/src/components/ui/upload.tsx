@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button } from "./components/ui/button";
+import { Button } from "./button";
 import { motion } from "framer-motion";
 
 interface FileUploadButtonProps {
@@ -30,7 +30,6 @@ const FileUploadButton: React.FC<FileUploadButtonProps> = ({
         setSelectedFile(null);
         return;
       }
-
       setSelectedFile(file);
       onUpload(file);
     }

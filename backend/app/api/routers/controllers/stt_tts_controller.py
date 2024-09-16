@@ -5,8 +5,9 @@ import io
 from elevenlabs.client import ElevenLabs
 from pydantic import BaseModel
 from faster_whisper import WhisperModel
-from app.core.agent.core import SuperGraph
+#from app.core.agent.core import SuperGraph
 
+#super_graph = SuperGraph()
 #super_graph = SuperGraph()
 stt_tts_router = APIRouter()
 
