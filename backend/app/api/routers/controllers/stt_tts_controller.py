@@ -5,9 +5,9 @@ import io
 from elevenlabs.client import ElevenLabs
 from pydantic import BaseModel
 from faster_whisper import WhisperModel
-from app.core.agent.core import SuperGraph
+#from app.core.agent.core import SuperGraph
 
-super_graph = SuperGraph()
+#super_graph = SuperGraph()
 stt_tts_router = APIRouter()
 
 class GraphRequest(BaseModel):
@@ -56,15 +56,15 @@ async def stt_tts_handler(websocket: WebSocket, request: GraphRequest):
             await websocket.send_text(f"Transcription: {user_text}")
             
 
-            #Get response from graph
-            if request.is_initial:
-                result = super_graph.start_conversation(user_text)
-            elif super_graph.awaiting_feedback():
-                result = super_graph.continue_with_human_feedback(user_text)
-            else:
-                result = super_graph.handle_interruption(user_text)
+            # #Get response from graph
+            # if request.is_initial:
+            #     result = super_graph.start_conversation(user_text)
+            # elif super_graph.awaiting_feedback():
+            #     result = super_graph.continue_with_human_feedback(user_text)
+            # else:
+            #     result = super_graph.handle_interruption(user_text)
             
-            response_text = result #TODO:Check result object dictionary to get the response text
+            response_text =" result "#TODO:Check result object dictionary to get the response text
             await websocket.send_text(response_text) # Model response text
             
             # Generate audio response using ElevenLabs
