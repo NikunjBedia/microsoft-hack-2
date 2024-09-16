@@ -8,7 +8,7 @@ from typing_extensions import TypedDict
 from typing import Annotated, List
 from app.core.agent.helpers.utils import create_team_supervisor
 from app.core.agent.graphs.interruption_graph import InterruptionGraph
-from app.core.agent.graphs.script_graph import script_chain
+#from app.core.agent.graphs.script_graph import script_chain
 
 class SuperGraph:
     def __init__(self):
@@ -58,7 +58,7 @@ class SuperGraph:
         # Define the graph.
         super_graph = StateGraph(self.State)
         # First add the nodes, which will do the work
-        super_graph.add_node("ScriptGenerationTeam", self.get_last_message | script_chain | self.join_graph)
+        super_graph.add_node("ScriptGenerationTeam", self.get_last_message  | self.join_graph)
         super_graph.add_node(
             "QuestionAnsweringTeam", self.get_last_message | self.interruption_graph.run_interruption_chain | self.join_graph
         )
