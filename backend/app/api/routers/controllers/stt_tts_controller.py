@@ -16,7 +16,7 @@ from langchain.chains import LLMChain
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 import uvicorn
-from starlette.websockets import WebSocketDisconnect
+from starlette.websockets import WebSocketDisconnect, WebSocketState
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema.runnable import RunnablePassthrough
 # super_graph = SuperGraph()
@@ -131,11 +131,13 @@ async def stt_tts_handler(websocket: WebSocket):
             
             # Check if transcription is empty
             if not user_text.strip():
-                await websocket.send_text("Transcription: [No speech detected. Please try again.]")
+                if websocket.client_state == WebSocketState.CONNECTED:
+                    await websocket.send_text("Transcription: [No speech detected. Please try again.]")
                 continue
             
             # Send transcription back to client
-            await websocket.send_text(f"Transcription: {user_text}")
+            if websocket.client_state == WebSocketState.CONNECTED:
+                await websocket.send_text(f"Transcription: {user_text}")
             
 
             # #Get response from graph
@@ -152,7 +154,8 @@ async def stt_tts_handler(websocket: WebSocket):
             
             response_text = result #TODO:Check result object dictionary to get the response text
             print(response_text)
-            await websocket.send_text(response_text) # Model response text
+            if websocket.client_state == WebSocketState.CONNECTED:
+                await websocket.send_text(response_text) # Model response text
             
             # Generate audio response using ElevenLabs
             elevenlabs_client = ElevenLabs(
@@ -167,13 +170,15 @@ async def stt_tts_handler(websocket: WebSocket):
             )
             
             # Send the audio response to the client
-            await websocket.send_bytes(audio_response)
+            if websocket.client_state == WebSocketState.CONNECTED:
+                await websocket.send_bytes(audio_response)
 
 
         except Exception as e:
             error_message = f"An error occurred: {str(e)}"
-            print(error_message)  # Log the error
-            await websocket.send_text(error_message)
+            print(error_message)  
+            if websocket.client_state == WebSocketState.CONNECTED:# Log the error
+                await websocket.send_text(error_message)
         
         finally:
             # Clean up temporary file
@@ -201,7 +206,8 @@ async def script_generation_handler(websocket: WebSocket):
                         model="eleven_multilingual_v1",
                         stream=True
                     )
-                    await websocket.send_bytes(audio_response)
+                    if websocket.client_state == WebSocketState.CONNECTED:
+                        await websocket.send_bytes(audio_response)
             
             except WebSocketDisconnect:
                 print("WebSocket disconnected during script generation")
