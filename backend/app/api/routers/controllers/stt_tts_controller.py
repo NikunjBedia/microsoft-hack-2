@@ -161,6 +161,7 @@ async def stt_tts_handler(websocket: WebSocket):
             elevenlabs_client = ElevenLabs(
                 api_key=os.environ.get("XI_API_KEY"),  
             )
+            response_text = ' '.join(response_text.split()[:5])
             elevenlabs_generate = elevenlabs_client.generate
             audio_response = elevenlabs_generate(
                 text=response_text,
@@ -199,6 +200,7 @@ async def script_generation_handler(websocket: WebSocket):
                     elevenlabs_client = ElevenLabs(
                         api_key=os.environ.get("XI_API_KEY"),  
                     )
+                    item["content"] = ' '.join(item["content"].split()[:5])
                     elevenlabs_generate = elevenlabs_client.generate
                     audio_response = elevenlabs_generate(
                         text=item["content"],
