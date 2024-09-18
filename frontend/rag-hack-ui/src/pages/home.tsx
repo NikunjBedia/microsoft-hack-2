@@ -34,7 +34,7 @@ const Home = () => {
         }`}
       >
         <div className={`text-7xl font-medium text-center`}>
-          Karee <br /> Sit Amet
+          Curio <br /> <p className="font-small"> The future of learning is here!</p>
         </div>
         <FileUploadButton onUpload={handleFileUpload} isLoading={loading} />
       </div>

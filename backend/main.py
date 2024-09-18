@@ -34,7 +34,7 @@ if environment == "dev":
 # app.include_router(nodeurl_router, prefix= "/api/nodeurl")
 app.include_router(fetch_topics_router, prefix="/api/topics")
 app.include_router(upload_documents_router, prefix= "/api/document")
-app.include_router(stt_tts_router, prefix= "/ws/stt_tts")
+app.include_router(stt_tts_router, prefix= "")
 
 app.include_router(interruption_graph_router, prefix="/api/interruption")
 

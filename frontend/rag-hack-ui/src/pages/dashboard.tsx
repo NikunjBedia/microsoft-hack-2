@@ -9,6 +9,7 @@ import { useSelector } from "react-redux";
 import { Pause, Mic, ChevronLeft, ChevronRight } from "lucide-react";
 import VoiceVisualizer from "../components/ui/voiceVisualizer";
 import useAxios from "../hooks/useAxios";
+import AudioRecorder from "../components/ui/AudioRecorder";
 
 const sidebar = {
   open: (height = 525) => ({
@@ -105,19 +106,7 @@ const Dashboard = () => {
         <div className="audio-container h-1/3 flex justify-center items-center">
           <VoiceVisualizer />
         </div>
-        <div className="flex justify-center items-center mb-5">
-        <button 
-          className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 mr-3"
-        >
-          <Pause size={25} />
-        </button>
-        <button 
-          className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 ml-3"
-        >
-          <Mic size={25} />
-        </button>
-        </div>
-        <div className="flex-grow bg-white w-100 rounded-lg shadow-md p-4 mb-4 overflow-y-auto"></div>
+        <AudioRecorder/>
         <div
           className="flex justify-between items-center"
           style={{ zIndex: 55 }}
@@ -125,7 +114,7 @@ const Dashboard = () => {
           <button className="p-2 bg-white text-black rounded-full shadow-md hover:shadow-lg">
             <ChevronLeft size={20} />
           </button>
-          <p className="text-2xl text-center">{"Title of the chapter"}</p>
+          <p className="text-2xl text-center">{topic.currentTopic}</p>
           <button className="p-2 bg-white text-black rounded-full shadow-md hover:shadow-lg">
             <ChevronRight size={20} />
           </button>
