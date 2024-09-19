@@ -161,7 +161,6 @@ async def stt_tts_handler(websocket: WebSocket):
             elevenlabs_client = ElevenLabs(
                 api_key=os.environ.get("XI_API_KEY"),  
             )
-            response_text = ' '.join(response_text.split()[:5])
             elevenlabs_generate = elevenlabs_client.generate
             audio_response = elevenlabs_generate(
                 text=response_text,
@@ -200,7 +199,6 @@ async def script_generation_handler(websocket: WebSocket):
                     elevenlabs_client = ElevenLabs(
                         api_key=os.environ.get("XI_API_KEY"),  
                     )
-                    item["content"] = ' '.join(item["content"].split()[:5])
                     elevenlabs_generate = elevenlabs_client.generate
                     audio_response = elevenlabs_generate(
                         text=item["content"],
@@ -266,7 +264,7 @@ html_content = """
 
             function initializeScriptWs() {
                 return new Promise((resolve, reject) => {
-                    scriptWs = new WebSocket("ws://localhost:8000/ws/script_generation");
+                    scriptWs = new WebSocket("wss://curio-4dpf.onrender.com/ws/script_generation");
                     scriptWs.onmessage = handleMessage;
                     scriptWs.onopen = function() {
                         console.log("Script WebSocket connected");
@@ -291,7 +289,7 @@ html_content = """
                     currentAudioSource = null;
                 }
                 
-                ws = new WebSocket("ws://localhost:8000/ws/stt_tts");
+                ws = new WebSocket("wss://curio-4dpf.onrender.com/ws/stt_tts");
                 ws.onopen = function() {
                     console.log("Interruption WebSocket connected");
                 };
@@ -421,16 +419,16 @@ html_content = """
 
 
 # Create FastAPI app
-app = FastAPI()
+# app = FastAPI()
 
 # Add the existing router
-app.include_router(stt_tts_router)
+# app.include_router(stt_tts_router)
 
 # Add a route for the HTML client
-@app.get("/", response_class=HTMLResponse)
+@stt_tts_router.get("/", response_class=HTMLResponse)
 async def get_html_client():
     return HTMLResponse(content=html_content, status_code=200)
 
 # Run the app if this script is executed directly
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# if __name__ == "__main__":
+#     uvicorn.run(app, host="0.0.0.0", port=8000)
